@@ -56,13 +56,20 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
     private void executeQuery(ChannelHandlerContext ctx, PgwireQuery sqlQuery) {
         try {
-            Statement statement = this.conn.createStatement();
-            ResultSet resultSet = statement.executeQuery("select * from artifacts");
+            final Statement statement = this.conn.createStatement();
+            String sql;
+            if (sqlQuery.query.endsWith(";")) {
+                sql = sqlQuery.query.substring(0, sqlQuery.query.lastIndexOf(";"));
+            } else {
+                sql = sqlQuery.query;
+            }
+            final ResultSet resultSet = statement.executeQuery(sql);
             sendQueryResult(ctx, resultSet);
             resultSet.close();
             statement.close();
         } catch (SQLException e) {
-            ctx.fireExceptionCaught(e);
+            e.printStackTrace();
+            ctx.close();
         }
     }
 
@@ -72,9 +79,9 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
     private void sendQueryResult(ChannelHandlerContext ctx, ResultSet resultSet) {
         try {
             final ResultSetMetaData metadata = resultSet.getMetaData();
-            int numColumns = metadata.getColumnCount();
+            final int numColumns = metadata.getColumnCount();
 
-            List<PgwireField> fields = new ArrayList<>();
+            final List<PgwireField> fields = new ArrayList<>();
             for (int i=1; i <= numColumns; i++) {
                 // xxx(okachaiev): columns of different type, com'n
                 fields.add(new PgwireVarcharField(metadata.getColumnName(i)));
@@ -82,7 +89,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
             ctx.write(new PgwireRowDescription(fields));
     
             while(resultSet.next()) {
-                Object[] row = new Object[numColumns];
+                final Object[] row = new Object[numColumns];
                 for (int i = 1; i <= numColumns; i++) {
                     row[i-1] = resultSet.getObject(i);
                 }

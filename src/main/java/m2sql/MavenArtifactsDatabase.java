@@ -93,7 +93,7 @@ public class MavenArtifactsDatabase {
     public Connection createConnection() throws ClassNotFoundException, SQLException {
         Class.forName("org.apache.calcite.jdbc.Driver");
         Properties info = new Properties();
-        info.setProperty("lex", Lex.MYSQL_ANSI.toString());
+        info.setProperty("lex", Lex.MYSQL.toString());
         Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
         SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -121,8 +121,8 @@ public class MavenArtifactsDatabase {
         MavenArtifactsDatabase db = new MavenArtifactsDatabase(baseFolder);
 
         final Connection conn = db.createConnection();
-        Statement statement = conn.createStatement();
-        ResultSet resultSet = statement.executeQuery("select * from artifacts");
+        final Statement statement = conn.createStatement();
+        final ResultSet resultSet = statement.executeQuery("select * from artifacts");
         printResultSet(resultSet);
         resultSet.close();
         statement.close();
