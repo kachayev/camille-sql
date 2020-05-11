@@ -1,0 +1,33 @@
+package pgwire4j;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+
+public class PgwireMessageDecoder extends LengthFieldBasedFrameDecoder {
+
+    public PgwireMessageDecoder() {
+        super(Integer.MAX_VALUE, 1, 4, -4, 0);
+    }
+
+    @Override
+    protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+        ByteBuf frame = (ByteBuf) super.decode(ctx, in);
+        if (frame == null) {
+            return null;
+        }
+
+        final byte typeCode = frame.readByte();
+        final int msglen = frame.readInt();
+        final ByteBuf content = frame.readBytes(msglen-4);
+        switch(typeCode) {
+            case 'p':
+                return new PgwireAuthenticationResponse(content);
+            case 'Q':
+                return new PgwireQuery(content);
+            case 'X':
+                return new PgwireTerminate();
+        }
+        return null;
+    }
+}
