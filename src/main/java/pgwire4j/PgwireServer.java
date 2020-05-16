@@ -12,11 +12,11 @@ public class PgwireServer
 {
     final static int DEFAULT_PORT = 26727;
 
-    // System.getProperty("user.home");
+    final static String DEFAUL_FOLDER = System.getProperty("user.home") + "/.m2/repository/";
 
     public static void main(String[] args) throws InterruptedException
     {
-        final MavenArtifactsDatabase db = new MavenArtifactsDatabase("/Users/kachayev/.m2/repository/");
+        final MavenArtifactsDatabase db = new MavenArtifactsDatabase(DEFAUL_FOLDER);
 
         EventLoopGroup boss = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();

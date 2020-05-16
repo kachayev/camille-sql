@@ -59,11 +59,12 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
     private void executeQuery(ChannelHandlerContext ctx, PgwireQuery sql) {
         try {
-            final Statement statement = this.conn.createStatement();
-            final ResultSet resultSet = statement.executeQuery(sql.query);
-            sendQueryResult(ctx, resultSet);
-            resultSet.close();
-            statement.close();
+            try (
+                final Statement statement = this.conn.createStatement();
+                final ResultSet resultSet = statement.executeQuery(sql.query)
+            ) {
+                sendQueryResult(ctx, resultSet);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             ctx.close();
@@ -80,7 +81,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
             final List<PgwireField> fields = new ArrayList<>();
             for (int i=1; i <= numColumns; i++) {
-                // xxx(okachaiev): columns of different type, com'n
+                // xxx(okachaiev): in practice columns have different types
                 fields.add(new PgwireVarcharField(metadata.getColumnName(i)));
             }
             ctx.write(new PgwireRowDescription(fields));
