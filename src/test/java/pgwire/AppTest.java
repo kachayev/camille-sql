@@ -1,16 +1,13 @@
-package pgwire4j;
+package pgwire;
 
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-/**
- * Unit test for simple App.
- */
 public class AppTest 
 {
     /**
-     * Rigorous Test :-)
+     * xxx(okachaiev): I probably need to add some tests...
      */
     @Test
     public void shouldAnswerWithTrue()

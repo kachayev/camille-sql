@@ -1,4 +1,4 @@
-package pgwire;
+package camille.sql;
 
 import java.io.File;
 
@@ -15,8 +15,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import m2sql.MavenArtifactsDatabase;
+import pgwire.PgwireServerInitializer;
 
-public class PgwireServer {
+public class CamilleSqlServer {
     final static int DEFAULT_PORT = 26727;
 
     final static String DEFAUL_FOLDER = System.getProperty("user.home") + "/.m2/repository/";
@@ -67,7 +68,8 @@ public class PgwireServer {
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new PgwireServerInitializer(db));
-            
+
+            System.out.println(String.format("Artifacts repository path: %s", folder));
             System.out.println(String.format("Running server on localhost:%d", port));
 
             b.bind(port).sync().channel().closeFuture().sync();
