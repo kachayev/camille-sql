@@ -1,6 +1,7 @@
 package m2sql;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -31,19 +32,19 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 
-import m2sql.MavenArtifactsResolver.Artifact;
-
 public class MavenArtifactsDatabase {
 
-    private final MavenArtifactsResolver resolver;
+    private static final String JDBC_CALCITE_SCHEMA = "jdbc:calcite:";
 
+    private final MavenArtifactsResolver resolver;
+ 
     private final Table artifactsTable = new ScannableTable() {
         protected final RelProtoDataType protoRowType = new RelProtoDataType() {
             public RelDataType apply(RelDataTypeFactory typeFactory) {
                 return typeFactory.builder()
                     .add("uid", SqlTypeName.BIGINT)
-                    .add("groupId", SqlTypeName.VARCHAR, 1023)
-                    .add("artifactId", SqlTypeName.VARCHAR, 255)
+                    .add("group_id", SqlTypeName.VARCHAR, 1023)
+                    .add("artifact_id", SqlTypeName.VARCHAR, 255)
                     .build();
             }
         };
@@ -78,7 +79,62 @@ public class MavenArtifactsDatabase {
         public Enumerable<Object[]> scan(DataContext root) {
 			try {
 				return Linq4j.asEnumerable(
-                    resolver.findAll().map(artifact -> artifact.toRow()).collect(Collectors.toList()));
+                    resolver.findAll()
+                        .map(artifact -> artifact.toRow())
+                        .collect(Collectors.toList()));
+			} catch (IOException e) {
+                // xxx(okachaiev): log error
+				return Linq4j.emptyEnumerable();
+			}
+        }
+    };
+
+    private final Table versionsTable = new ScannableTable() {
+        protected final RelProtoDataType protoRowType = new RelProtoDataType() {
+            public RelDataType apply(RelDataTypeFactory typeFactory) {
+                return typeFactory.builder()
+                    .add("uid", SqlTypeName.BIGINT)
+                    .add("version", SqlTypeName.VARCHAR, 255)
+                    .add("filesize", SqlTypeName.BIGINT)
+                    .add("last_modified", SqlTypeName.DATE)
+                    .add("sha1", SqlTypeName.VARCHAR, 40)
+                    .build();
+            }
+        };
+
+        @Override
+        public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call, SqlNode parent,
+                CalciteConnectionConfig config) {
+            return false;
+        }
+
+        @Override
+        public boolean isRolledUp(String column) {
+            return false;
+        }
+
+        @Override
+        public Statistic getStatistic() {
+            return Statistics.UNKNOWN;
+        }
+
+        @Override
+        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+            return protoRowType.apply(typeFactory);
+        }
+
+        @Override
+        public TableType getJdbcTableType() {
+            return TableType.TABLE;
+        }
+
+        @Override
+        public Enumerable<Object[]> scan(DataContext root) {
+			try {
+				return Linq4j.asEnumerable(
+                    resolver.findAllVersions()
+                        .map(version -> version.toRow())
+                        .collect(Collectors.toList()));
 			} catch (IOException e) {
                 // xxx(okachaiev): log error
 				return Linq4j.emptyEnumerable();
@@ -94,10 +150,11 @@ public class MavenArtifactsDatabase {
         Class.forName("org.apache.calcite.jdbc.Driver");
         Properties info = new Properties();
         info.setProperty("lex", Lex.MYSQL.toString());
-        Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
+        Connection connection = DriverManager.getConnection(JDBC_CALCITE_SCHEMA, info);
         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
         SchemaPlus rootSchema = calciteConnection.getRootSchema();
         rootSchema.add("artifacts", artifactsTable);
+        rootSchema.add("versions", versionsTable);
         return calciteConnection;
     }
 
@@ -117,16 +174,33 @@ public class MavenArtifactsDatabase {
     public static void main(String[] args)
             throws ValidationException, RelConversionException, ClassNotFoundException, SQLException {
 
-        final String baseFolder = "/Users/kachayev/.m2/repository/";
-        MavenArtifactsDatabase db = new MavenArtifactsDatabase(baseFolder);
+        final String userFolder = System.getProperty("user.home");
+        final String m2Folder = Paths.get(userFolder, ".m2/repository/").toString();
+        MavenArtifactsDatabase db = new MavenArtifactsDatabase(m2Folder);
 
-        final Connection conn = db.createConnection();
-        final Statement statement = conn.createStatement();
-        final ResultSet resultSet = statement.executeQuery("select * from artifacts");
-        printResultSet(resultSet);
-        resultSet.close();
-        statement.close();
-        conn.close();
+        try (final Connection conn = db.createConnection()) {
+            try (final Statement statement = conn.createStatement()) {
+                try (final ResultSet resultSet = statement.executeQuery("select * from artifacts")) {
+                    printResultSet(resultSet);
+                    resultSet.close();
+                }
+
+                try (final ResultSet resultSet = statement.executeQuery("select * from versions")) {
+                    printResultSet(resultSet);
+                    resultSet.close();
+                }
+
+                try (final ResultSet resultSet = statement.executeQuery("select group_id, count(*) as n_files from artifacts left join versions on artifacts.uid=versions.uid group by group_id order by n_files desc")) {
+                    printResultSet(resultSet);
+                    resultSet.close();
+                }
+
+                try (final ResultSet resultSet = statement.executeQuery("select group_id, sum(filesize) as total_size from artifacts left join versions on artifacts.uid=versions.uid group by group_id order by total_size desc")) {
+                    printResultSet(resultSet);
+                    resultSet.close();
+                }
+            }
+        }
     }
 
 }

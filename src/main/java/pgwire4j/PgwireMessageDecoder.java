@@ -10,6 +10,17 @@ public class PgwireMessageDecoder extends LengthFieldBasedFrameDecoder {
         super(Integer.MAX_VALUE, 1, 4, -4, 0);
     }
 
+    private String prepareQuery(ByteBuf queryContent) {
+        byte[] bytes = new byte[queryContent.readableBytes()];
+        queryContent.readBytes(bytes);
+        String query = new String(bytes).strip();
+        if (query.endsWith(";")) {
+            return query.substring(0, query.lastIndexOf(";"));
+        } else {
+            return query;
+        }
+    }
+
     @Override
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
         ByteBuf frame = (ByteBuf) super.decode(ctx, in);
@@ -21,10 +32,11 @@ public class PgwireMessageDecoder extends LengthFieldBasedFrameDecoder {
         final int msglen = frame.readInt();
         final ByteBuf content = frame.readBytes(msglen-4);
         switch(typeCode) {
+            // xxx(okachaiev): there are quite a few more
             case 'p':
                 return new PgwireAuthenticationResponse(content);
             case 'Q':
-                return new PgwireQuery(content);
+                return new PgwireQuery(prepareQuery(content));
             case 'X':
                 return new PgwireTerminate();
         }

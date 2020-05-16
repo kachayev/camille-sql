@@ -10,7 +10,9 @@ import m2sql.MavenArtifactsDatabase;
 
 public class PgwireServer 
 {
-    final static int PORT = 26727;
+    final static int DEFAULT_PORT = 26727;
+
+    // System.getProperty("user.home");
 
     public static void main(String[] args) throws InterruptedException
     {
@@ -24,8 +26,7 @@ public class PgwireServer
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new PgwireServerInitializer(db));
-            
-            b.bind(PORT).sync().channel().closeFuture().sync();
+            b.bind(DEFAULT_PORT).sync().channel().closeFuture().sync();
         } finally {
             boss.shutdownGracefully();
             worker.shutdownGracefully();

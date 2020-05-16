@@ -37,16 +37,19 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof PgwireStartupMessage) {
+            // xxx(okachaiev): log
             System.out.println(msg);
-            // xxx(okachaiev): not sure if this is optimal approach
+            // xxx(okachaiev): not sure if this is an optimal approach
             ctx.pipeline().remove(PgwireStartupMessageDecoder.class);
             ctx.pipeline().addFirst(new PgwireMessageDecoder());
             ctx.writeAndFlush(new PgwireAuthenticationRequest());
         } else if (msg instanceof PgwireAuthenticationResponse) {
+            // xxx(okachaiev): log
             System.out.println(msg);
             ctx.write(new PgwireAuthenticationOk());
             ctx.writeAndFlush(new PgwireReadyForQuery());
         } else if (msg instanceof PgwireQuery) {
+            // xxx(okachaiev): log
             System.out.println(msg);
             executeQuery(ctx, (PgwireQuery) msg);
         } else if (msg instanceof PgwireTerminate) {
@@ -54,16 +57,10 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private void executeQuery(ChannelHandlerContext ctx, PgwireQuery sqlQuery) {
+    private void executeQuery(ChannelHandlerContext ctx, PgwireQuery sql) {
         try {
             final Statement statement = this.conn.createStatement();
-            String sql;
-            if (sqlQuery.query.endsWith(";")) {
-                sql = sqlQuery.query.substring(0, sqlQuery.query.lastIndexOf(";"));
-            } else {
-                sql = sqlQuery.query;
-            }
-            final ResultSet resultSet = statement.executeQuery(sql);
+            final ResultSet resultSet = statement.executeQuery(sql.query);
             sendQueryResult(ctx, resultSet);
             resultSet.close();
             statement.close();
@@ -87,7 +84,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
                 fields.add(new PgwireVarcharField(metadata.getColumnName(i)));
             }
             ctx.write(new PgwireRowDescription(fields));
-    
+
             while(resultSet.next()) {
                 final Object[] row = new Object[numColumns];
                 for (int i = 1; i <= numColumns; i++) {
