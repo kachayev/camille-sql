@@ -1,4 +1,4 @@
-package pgwire4j;
+package pgwire;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;

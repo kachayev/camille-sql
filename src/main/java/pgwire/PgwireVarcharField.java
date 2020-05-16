@@ -1,4 +1,4 @@
-package pgwire4j;
+package pgwire;
 
 public class PgwireVarcharField extends PgwireField {
     public PgwireVarcharField(String fieldName) {

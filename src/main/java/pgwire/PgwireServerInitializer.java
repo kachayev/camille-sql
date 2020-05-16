@@ -1,4 +1,4 @@
-package pgwire4j;
+package pgwire;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;

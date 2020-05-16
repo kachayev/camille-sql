@@ -1,4 +1,4 @@
-package pgwire4j;
+package pgwire;
 
 public class PgwireIntField extends PgwireField {
     public PgwireIntField (String fieldName) {

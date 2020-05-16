@@ -75,6 +75,7 @@ public class MavenArtifactsDatabase {
             return TableType.TABLE;
         }
 
+        // xxx(okachaiev): predicate push-down for subfolders
         @Override
         public Enumerable<Object[]> scan(DataContext root) {
 			try {

@@ -1,4 +1,4 @@
-package pgwire4j;
+package pgwire;
 
 public abstract class PgwireClientMessage {
 

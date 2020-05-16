@@ -1,4 +1,4 @@
-package pgwire4j;
+package pgwire;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
