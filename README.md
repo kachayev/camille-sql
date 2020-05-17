@@ -19,11 +19,13 @@ The server understands PostreSQL wire protocol, so you can connect to it using s
 
 ```shell
 $ PGPASSWORD=nopass psql "host=localhost port=26727 sslmode=disable"
-psql (12.2, server 0.0.0)
+psql (12.2, server 9.5.0)
 Type "help" for help.
 
 camille=>
 ```
+
+As you can see, `psql` is absolutely sure it talks to PostgreSQL version 9.5.0.
 
 Now you have access to 2 tables: `artifacts` and `versions`. You can run any read-only SQL query: the server supports projections, filtering, grouping, joins, agg functions, sub-queries etc (pretty much all of SQL99).
 

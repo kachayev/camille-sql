@@ -47,6 +47,8 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
             // xxx(okachaiev): log
             System.out.println(msg);
             ctx.write(new PgwireAuthenticationOk());
+            // pretend to be not very old and not very new PostgreSQL server
+            ctx.write(new PgwireParameterStatus("server_version", "9.5.0"));
             ctx.writeAndFlush(new PgwireReadyForQuery());
         } else if (msg instanceof PgwireQuery) {
             // xxx(okachaiev): log
