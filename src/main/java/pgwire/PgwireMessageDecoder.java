@@ -14,11 +14,7 @@ public class PgwireMessageDecoder extends LengthFieldBasedFrameDecoder {
         byte[] bytes = new byte[queryContent.readableBytes()];
         queryContent.readBytes(bytes);
         String query = new String(bytes).strip();
-        if (query.endsWith(";")) {
-            return query.substring(0, query.lastIndexOf(";"));
-        } else {
-            return query;
-        }
+        return query.substring(0, query.lastIndexOf(";"));
     }
 
     @Override

@@ -20,29 +20,63 @@ The server understands PostreSQL wire protocol, so you can connect to it using s
 ```shell
 $ PGPASSWORD=nopass psql "host=localhost port=26727 sslmode=disable"
 psql (12.2, server 0.0.0)
-camille=> 
+Type "help" for help.
+
+camille=>
 ```
 
 Now you have access to 2 tables: `artifacts` and `versions`. You can run any read-only SQL query: the server supports projections, filtering, grouping, joins, agg functions, sub-queries etc (pretty much all of SQL99).
 
-```shell
-camille=> select * from artifacts;
+Basic queries:
 
-camille=> select * from versions;
+```sql
+camille=> select * from artifacts limit 5;
+    uid     |       group_id        | artifact_id
+------------+-----------------------+-------------
+ 3345961009 | edu.ucla.cs.compilers | jtb
+ 1053708643 | stax                  | stax-api
+ 2740841946 | ant                   | ant
+ 925895164  | nrepl                 | nrepl
+ 1376528320 | nrepl                 | bencode
+(5 rows)
+```
 
+```sql
+camille=> select * from versions where filesize > 10000 limit 5;
+    uid     | version | filesize | last_modified |                   sha1
+------------+---------+----------+---------------+------------------------------------------
+ 3345961009 | 1.3.2   | 337129   | 2019-12-04    | ff84d15cfeb0825935a170d7908fbfae00498050
+ 1053708643 | 1.0.1   | 26514    | 2019-07-17    | 49c100caf72d658aca8e58bd74a4ba90fa2b0d70
+ 2740841946 | 1.6.5   | 1034049  | 2019-07-10    | 7d18faf23df1a5c3a43613952e0e8a182664564b
+ 925895164  | 0.4.4   | 42645    | 2019-04-09    | 2522f7f1b4bab169a2540406eb3eb71f7d6e3003
+ 136773645  | 1.9     | 263965   | 2019-10-31    | 9ce04e34240f674bc72680f8b843b1457383161a
+ (5 rows)
+```
+
+Something more complicated:
+
+```sql
 camille=>
-select group_id, count(*) as n_files
-from artifacts
-left join versions on artifacts.uid=versions.uid
-group by group_id
-order by n_files desc;
-
-camille=>
-select group_id, sum(filesize) as total_size
-from artifacts
-left join versions on artifacts.uid=versions.uid
-group by group_id
-order by total_size desc;
+SELECT group_id, COUNT(*) AS n_files
+FROM artifacts
+LEFT JOIN versions
+       ON artifacts.uid=versions.uid
+GROUP BY group_id
+ORDER BY n_files DESC
+LIMIT 10;
+         group_id         | n_files
+--------------------------+---------
+ org.apache.flink         | 391
+ org.apache.maven         | 245
+ org.codehaus.plexus      | 186
+ org.apache.hadoop        | 121
+ org.apache.maven.doxia   | 108
+ org.apache.maven.plugins | 82
+ io.netty                 | 67
+ org.apache.maven.shared  | 65
+ org.apache.lucene        | 64
+ org.apache.commons       | 62
+(10 rows)
 ```
 
 ## Why?
@@ -79,6 +113,7 @@ It's a project made for fun. Feel free to implement whatever feature you want an
 ## TODO
 
 - [ ] SSL, password authentication
+- [ ] Propage errors (like, wrong queries) to the client instead of re-openning the connection
 - [ ] Additional SQL features, like `show databases`, `show tables`
 - [ ] `pgwire` protocol has way more message types that are currently implemented
 - [ ] Reject non-read queries (`insert`, `update` etc)

@@ -83,7 +83,7 @@ public class MavenArtifactsResolver {
         final String withoutExtension = filename.substring(0, filename.lastIndexOf("."));
         final String withoutVersion = withoutExtension.substring(0, withoutExtension.lastIndexOf("-"));
         final Path groupFolder = filePath.getParent().getParent().getParent().toAbsolutePath();
-        final String groupId = groupFolder.toString().substring(baseFolder.length());
+        final String groupId = groupFolder.toString().substring(baseFolder.length()-1);
         return new Artifact(groupId.replace(File.separator, ".").substring(1), withoutVersion);
     }
 
