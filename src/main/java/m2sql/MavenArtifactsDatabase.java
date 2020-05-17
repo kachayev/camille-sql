@@ -1,6 +1,5 @@
 package m2sql;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,26 +8,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.Schema.TableType;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 
@@ -38,113 +22,14 @@ public class MavenArtifactsDatabase {
 
     private final MavenArtifactsResolver resolver;
  
-    private final Table artifactsTable = new ScannableTable() {
-        protected final RelProtoDataType protoRowType = new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-                return new RelDataTypeFactory.Builder(typeFactory)
-                    .add("uid", SqlTypeName.BIGINT)
-                    .add("group_id", SqlTypeName.VARCHAR, 1023)
-                    .add("artifact_id", SqlTypeName.VARCHAR, 255)
-                    .build();
-            }
-        };
+    private final Table artifactsTable;
 
-        @Override
-        public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call, SqlNode parent,
-                CalciteConnectionConfig config) {
-            return false;
-        }
-
-        @Override
-        public boolean isRolledUp(String column) {
-            return false;
-        }
-
-        @Override
-        public Statistic getStatistic() {
-            return Statistics.UNKNOWN;
-        }
-
-        @Override
-        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-            return protoRowType.apply(typeFactory);
-        }
-
-        @Override
-        public TableType getJdbcTableType() {
-            return TableType.TABLE;
-        }
-
-        // xxx(okachaiev): predicate push-down for subfolders
-        @Override
-        public Enumerable<Object[]> scan(DataContext root) {
-			try {
-				return Linq4j.asEnumerable(
-                    resolver.findAll()
-                        .map(artifact -> artifact.toRow())
-                        .collect(Collectors.toList()));
-			} catch (IOException e) {
-                // xxx(okachaiev): log error
-				return Linq4j.emptyEnumerable();
-			}
-        }
-    };
-
-    private final Table versionsTable = new ScannableTable() {
-        protected final RelProtoDataType protoRowType = new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-                return new RelDataTypeFactory.Builder(typeFactory)
-                    .add("uid", SqlTypeName.BIGINT)
-                    .add("version", SqlTypeName.VARCHAR, 255)
-                    .add("filesize", SqlTypeName.BIGINT)
-                    .add("last_modified", SqlTypeName.DATE)
-                    .add("sha1", SqlTypeName.VARCHAR, 40)
-                    .build();
-            }
-        };
-
-        @Override
-        public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call, SqlNode parent,
-                CalciteConnectionConfig config) {
-            return false;
-        }
-
-        @Override
-        public boolean isRolledUp(String column) {
-            return false;
-        }
-
-        @Override
-        public Statistic getStatistic() {
-            return Statistics.UNKNOWN;
-        }
-
-        @Override
-        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-            return protoRowType.apply(typeFactory);
-        }
-
-        @Override
-        public TableType getJdbcTableType() {
-            return TableType.TABLE;
-        }
-
-        @Override
-        public Enumerable<Object[]> scan(DataContext root) {
-			try {
-				return Linq4j.asEnumerable(
-                    resolver.findAllVersions()
-                        .map(version -> version.toRow())
-                        .collect(Collectors.toList()));
-			} catch (IOException e) {
-                // xxx(okachaiev): log error
-				return Linq4j.emptyEnumerable();
-			}
-        }
-    };
+    private final Table versionsTable;
 
     public MavenArtifactsDatabase(String baseFolder) {
         this.resolver = new MavenArtifactsResolver(baseFolder);
+        this.artifactsTable = new MavenArtifactsTable(this.resolver);
+        this.versionsTable = new MavenArtifactVersionsTable(this.resolver);
     }
 
     public Connection createConnection() throws ClassNotFoundException, SQLException {
@@ -181,12 +66,12 @@ public class MavenArtifactsDatabase {
 
         try (final Connection conn = db.createConnection()) {
             try (final Statement statement = conn.createStatement()) {
-                try (final ResultSet resultSet = statement.executeQuery("select * from artifacts")) {
+                try (final ResultSet resultSet = statement.executeQuery("select group_id from artifacts")) {
                     printResultSet(resultSet);
                     resultSet.close();
                 }
 
-                try (final ResultSet resultSet = statement.executeQuery("select * from versions")) {
+                try (final ResultSet resultSet = statement.executeQuery("select uid, filesize from versions")) {
                     printResultSet(resultSet);
                     resultSet.close();
                 }

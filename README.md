@@ -117,6 +117,7 @@ It's a project made for fun. Feel free to implement whatever feature you want an
 - [ ] Network encoding logic baked into DTO object is such a bad idea... Instead of `toByteBuf` method for each message type, the logic should be implemented in a single encoder with dynamic type-based dispatch
 - [ ] SSL, password authentication
 - [ ] Propage errors (like, wrong queries) to the client instead of re-openning the connection
+- [ ] Carry cancel flag around
 - [ ] Additional SQL features, like `show databases`, `show tables`
 - [ ] `pgwire` protocol has way more message types that are currently implemented
 - [ ] Reject non-read queries (`insert`, `update` etc)

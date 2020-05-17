@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.CRC32;
 
@@ -38,13 +42,22 @@ public class MavenArtifactsResolver {
             return String.format("%s::%s", groupId, artifactId);
         }
 
-        public Object[] toRow() {
-            final Object[] row = {
-                this.getUid(),
-                this.getGroupId(),
-                this.getArtifactId()
-            };
-            return row;
+        public Object[] toRow(final int[] projects) {
+            final List<Object> row = new ArrayList<>();
+            for (final int fieldIndex: projects) {
+                switch (fieldIndex) {
+                    case 0:
+                        row.add(this.getUid());
+                        break;
+                    case 1:
+                        row.add(this.getGroupId());
+                        break;
+                    case 2:
+                        row.add(this.getArtifactId());
+                        break;
+                }
+            }
+            return row.toArray();
         }
     }
 
@@ -57,15 +70,28 @@ public class MavenArtifactsResolver {
         private final long lastModified;
         private final String sha1;
 
-        public Object[] toRow() {
-            final Object[] row = {
-                this.uid,
-                this.version,
-                this.filesize,
-                this.lastModified,
-                this.sha1,
-            };
-            return row;
+        public Object[] toRow(final int[] projects) {
+            final List<Object> row = new ArrayList<>();
+            for (final int fieldIndex: projects) {
+                switch (fieldIndex) {
+                    case 0:
+                        row.add(this.getUid());
+                        break;
+                    case 1:
+                        row.add(this.getVersion());
+                        break;
+                    case 2:
+                        row.add(this.getFilesize());
+                        break;
+                    case 3:
+                        row.add(this.getLastModified());
+                        break;
+                    case 4:
+                        row.add(this.getSha1());
+                        break;
+                }
+            }
+            return row.toArray();
         }
     }
 
@@ -87,25 +113,47 @@ public class MavenArtifactsResolver {
         return new Artifact(groupId.replace(File.separator, ".").substring(1), withoutVersion);
     }
 
-    private ArtifactVersion pomPathToArtifactVersion(Path filePath) {
+    // xxx(okachaiev): i absolutely need to find a better way to present column names & indices
+    // to avoid "switch" statements and magical .contains calls
+    private ArtifactVersion pomPathToArtifactVersion(final int[] projects, final Path filePath) {
+        final Set<Integer> fieldIndex = new HashSet<>();
+        for (final int project: projects) {
+            fieldIndex.add(project);
+        }
+
         final Artifact artifact = pomPathToArtifact(filePath);
         final String filename = filePath.getFileName().toString();
         final String version = filename.substring(filename.lastIndexOf("-")+1, filename.lastIndexOf("."));
 
         final String fullPath = filePath.toString();
         final String jarPath = fullPath.substring(0, fullPath.lastIndexOf(".")) + JAR_EXTENSION;
-        final File jarFile = new File(jarPath);
-        final long filesize = jarFile.length();
+        
+        File jarFile = null;
+        if (fieldIndex.contains(2) || fieldIndex.contains(3)) {
+            jarFile = new File(jarPath);
+        }
+
+        long filesize = 0;
+        if (fieldIndex.contains(2)) {
+            filesize = jarFile.length();
+        }
+
+        long lastModified = 0;
+        if (fieldIndex.contains(3)) {
+            lastModified = jarFile.lastModified();
+        }
 
         final String jarSHAPath = jarPath + JAR_SHA_EXTENSION;
         String sha = "";
-        try {
-            sha = FileUtils.readFileToString(new File(jarSHAPath), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            // no-op
+        if (fieldIndex.contains(4)) {
+            try {
+                sha = FileUtils.readFileToString(new File(jarSHAPath), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                // no-op
+            }
         }
 
-        return new ArtifactVersion(artifact.getUid(), version, filesize, jarFile.lastModified(), sha);
+        return new ArtifactVersion(artifact.getUid(), version, filesize, lastModified, sha);
     }
 
     public Stream<Artifact> findAll() throws IOException {
@@ -115,10 +163,10 @@ public class MavenArtifactsResolver {
                 .distinct();
     }
 
-	public Stream<ArtifactVersion> findAllVersions() throws IOException {
+	public Stream<ArtifactVersion> findAllVersions(final int[] projects) throws IOException {
         return Files.walk(baseFolderPath)
                 .filter(path -> path.toString().endsWith(POM_EXTENSION))
-                .map(this::pomPathToArtifactVersion)
+                .map(path -> pomPathToArtifactVersion(projects, path))
                 .distinct();
 	}
 
