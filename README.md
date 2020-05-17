@@ -12,6 +12,7 @@ Run the server:
 $ bin/camille-server
 Artifacts repository path: /Users/<user>/.m2/repository/
 Running server on localhost:26727
+...
 ```
 
 The server understands PostreSQL wire protocol, so you can connect to it using standard `psql` client:
@@ -46,8 +47,6 @@ order by total_size desc;
 
 ## Why?
 
-"Precision is the difference between a butcher and a surgeon" (tm)
-
 The project is mainly done out of pure curiosity:
 - figure out how does low-level PostgreSQL transport protocol (`pgwire`) look like
 - check on practice how simple or hard would it be to implement `pgwire` as a [Netty](https://netty.io/) codec
@@ -61,6 +60,17 @@ The project is mainly done out of pure curiosity:
 - Server handler cycles over incomming SQL queries, decoding queries from bytes protocol and serializing result set into a proper sequence of messages (row descriptor -> row data -> command complete).
 - "Database" that actually executes query is implemented in `m2sql` package. It exposes JDBC connection, so the server uses standard `java.sql` interface when talking to it (see documentation for [Apache Avatica](https://calcite.apache.org/avatica/) library).
 - [Apache Calcite](https://calcite.apache.org/) is used for query parsing, query planning, query optimizaiton. High-level API is used to declare catalog structure, tables, schemas, relations and scanning logic.
+
+## Optimizations
+
+"Precision is the difference between a butcher and a surgeon" (tm)
+
+Implemented optimization:
+- projection elimination: if "filesize" is not queried, we don't need to waste cpu/ram to calculate it
+- push-down predicates for filtering: jump into a subfolder if prefix is known
+
+Work in progress:
+- optimized join of artifacts and versions: we can walk files tree once to retrieve all the information we need
 
 ## Contributions
 

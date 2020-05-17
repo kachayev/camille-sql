@@ -41,7 +41,7 @@ public class MavenArtifactsDatabase {
     private final Table artifactsTable = new ScannableTable() {
         protected final RelProtoDataType protoRowType = new RelProtoDataType() {
             public RelDataType apply(RelDataTypeFactory typeFactory) {
-                return typeFactory.builder()
+                return new RelDataTypeFactory.Builder(typeFactory)
                     .add("uid", SqlTypeName.BIGINT)
                     .add("group_id", SqlTypeName.VARCHAR, 1023)
                     .add("artifact_id", SqlTypeName.VARCHAR, 255)
@@ -93,7 +93,7 @@ public class MavenArtifactsDatabase {
     private final Table versionsTable = new ScannableTable() {
         protected final RelProtoDataType protoRowType = new RelProtoDataType() {
             public RelDataType apply(RelDataTypeFactory typeFactory) {
-                return typeFactory.builder()
+                return new RelDataTypeFactory.Builder(typeFactory)
                     .add("uid", SqlTypeName.BIGINT)
                     .add("version", SqlTypeName.VARCHAR, 255)
                     .add("filesize", SqlTypeName.BIGINT)
