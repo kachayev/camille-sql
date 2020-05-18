@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -156,8 +157,14 @@ public class MavenArtifactsResolver {
         return new ArtifactVersion(artifact.getUid(), version, filesize, lastModified, sha);
     }
 
-    public Stream<Artifact> findAll() throws IOException {
-        return Files.walk(baseFolderPath)
+    public Stream<Artifact> findAll(String folderName) throws IOException {
+        Path folderPath;
+        if (null != folderName) {
+            folderPath = Paths.get(baseFolderPath.toString(), folderName.replace(".", File.pathSeparator));
+        } else {
+            folderPath = baseFolderPath;
+        }
+        return Files.walk(folderPath)
                 .filter(path -> path.toString().endsWith(POM_EXTENSION))
                 .map(this::pomPathToArtifact)
                 .distinct();

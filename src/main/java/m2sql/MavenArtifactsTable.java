@@ -11,14 +11,19 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Schema.TableType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
 
 public class MavenArtifactsTable implements ProjectableFilterableTable {
 
@@ -64,12 +69,33 @@ public class MavenArtifactsTable implements ProjectableFilterableTable {
         return TableType.TABLE;
     }
 
-    // xxx(okachaiev): predicate push-down for subfolders
     @Override
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters, int[] projects) {
+        String folder = null;
+        // xxx(okachaiev): that's an interesting part...
+        // finding a filter that we can actually push-down is kinda
+        // a delicate matter. this code might overwrite folder and
+        // make the result simply wrong. E.g. when selecting
+        // ... group_id = 'maven' and group_id = 'ant'...
+        for (final RexNode filter: filters) {
+            if (filter.isA(SqlKind.EQUALS)) {
+                final RexCall call = (RexCall) filter;
+                final List<RexNode> operands = call.getOperands();
+                final RexNode columnInput = operands.get(0);
+                if (columnInput instanceof RexInputRef
+                        && ((RexInputRef) columnInput).getName().equals("$1")) {
+                    final RexNode columnLiteral = operands.get(1);
+                    if (columnLiteral instanceof RexLiteral) {
+                        NlsString value = (NlsString) ((RexLiteral) columnLiteral).getValue();
+                        folder = value.getValue();
+                    }
+                }
+            }
+        }
+
         try {
             return Linq4j
-                    .asEnumerable(resolver.findAll()
+                    .asEnumerable(resolver.findAll(folder)
                         .map(artifact -> artifact.toRow(projects))
                         .collect(Collectors.toList()));
         } catch (IOException e) {

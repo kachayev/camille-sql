@@ -69,6 +69,8 @@ public class MavenArtifactVersionsTable implements ProjectableFilterableTable {
     @Override
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters, int[] projects) {
         try {
+            // xxx(okachaiev): `toRow` is not very necessary... should just
+            // pack entire functionality into a single `findAllVersions` call
             return Linq4j.asEnumerable(
                 resolver.findAllVersions(projects)
                     .map(version -> version.toRow(projects))
