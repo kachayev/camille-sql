@@ -87,7 +87,14 @@ public class MavenArtifactsTable implements ProjectableFilterableTable {
                     final RexNode columnLiteral = operands.get(1);
                     if (columnLiteral instanceof RexLiteral) {
                         NlsString value = (NlsString) ((RexLiteral) columnLiteral).getValue();
-                        folder = value.getValue();
+                        final String stringValue = value.getValue();
+                        if (folder != null && !folder.equals(stringValue)) {
+                            // this is exactly the situation of "group_id = 'maven' and group_id = 'ant'"
+                            // we can just return an empty list here
+                            return Linq4j.emptyEnumerable();
+                        } else {
+                            folder = stringValue;
+                        }
                     }
                 }
             }
