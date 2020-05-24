@@ -5,14 +5,20 @@ import io.netty.buffer.ByteBufAllocator;
 
 public class PgwireCommandComplete extends PgwireServerMessage {
 
-    // xxx(okachaiev): the command  would be different for different completions
-    static final String command = "SELECT";
+    private final String command;
+
+    private final int markedLength;
+
+    public PgwireCommandComplete(final String command) {
+        this.command = command;
+        this.markedLength = 4 + 1 + command.length();
+    }
 
     @Override
     public ByteBuf toByteBuf(ByteBufAllocator allocator) {
-        ByteBuf buf = allocator.buffer(12);
+        final ByteBuf buf = allocator.buffer(markedLength + 1);
         buf.writeByte('C');
-        buf.writeInt(11);
+        buf.writeInt(markedLength);
         buf.writeBytes(command.getBytes());
         buf.writeZero(1);
         return buf;

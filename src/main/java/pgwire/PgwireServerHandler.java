@@ -14,6 +14,11 @@ import m2sql.MavenArtifactsDatabase;
 
 public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
+    private static final PgwireCommandComplete SELECT_COMMAND_COMPLETE_MESSAGE =
+        new PgwireCommandComplete("SELECT");
+
+    private static final PgwireReadyForQuery READY_FOR_QUERY_MESSAGE = new PgwireReadyForQuery();
+
     private final MavenArtifactsDatabase db;
 
     private Connection conn;
@@ -54,7 +59,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
             ctx.write(new PgwireAuthenticationOk());
             ctx.write(new PgwireParameterStatus("server_version", pgVersion));
-            ctx.writeAndFlush(new PgwireReadyForQuery());
+            ctx.writeAndFlush(READY_FOR_QUERY_MESSAGE);
         } else if (msg instanceof PgwireQuery) {
             System.out.println("Executing query: " + msg);
 
@@ -103,9 +108,9 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
                 ctx.write(new PgwireRowData(row));
             }
 
-            ctx.write(new PgwireCommandComplete());
+            ctx.write(SELECT_COMMAND_COMPLETE_MESSAGE);
             // xxx(okachaiev): keep a single instance instance of "new" each time
-            ctx.writeAndFlush(new PgwireReadyForQuery());
+            ctx.writeAndFlush(READY_FOR_QUERY_MESSAGE);
         } catch (SQLException e) {
             ctx.fireExceptionCaught(e);
         }
@@ -114,7 +119,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
     private void sendError(ChannelHandlerContext ctx, final String code, final String message) {
         ctx.write(new PgwireErrorMessage(PgwireErrorMessage.Severity.ERROR, code, message));
         // ready to serve again
-        ctx.writeAndFlush(new PgwireReadyForQuery());
+        ctx.writeAndFlush(READY_FOR_QUERY_MESSAGE);
     }
 
     @Override

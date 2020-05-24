@@ -24,9 +24,10 @@ public class PgwireErrorMessage extends PgwireServerMessage {
 
     @Override
     public ByteBuf toByteBuf(ByteBufAllocator allocator) {
-        final ByteBuf buf = allocator.buffer();
+        final int markedLength = 4 + 6 + this.totalLength + 1;
+        final ByteBuf buf = allocator.buffer(markedLength + 1);
         buf.writeByte('E');
-        buf.writeInt(4 + 6 + this.totalLength + 1);
+        buf.writeInt(markedLength);
         buf.writeByte('S');
         buf.writeBytes(this.severity.getBytes());
         buf.writeZero(1);
