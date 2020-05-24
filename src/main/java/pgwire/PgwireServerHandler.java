@@ -43,6 +43,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
         if (msg instanceof PgwireStartupMessage) {
             // xxx(okachaiev): log
             System.out.println(msg);
+
             // xxx(okachaiev): not sure if this is an optimal approach
             ctx.pipeline().remove(PgwireStartupMessageDecoder.class);
             ctx.pipeline().addFirst(new PgwireMessageDecoder());
@@ -50,12 +51,13 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
         } else if (msg instanceof PgwireAuthenticationResponse) {
             // xxx(okachaiev): log
             System.out.println(msg);
+
             ctx.write(new PgwireAuthenticationOk());
             ctx.write(new PgwireParameterStatus("server_version", pgVersion));
             ctx.writeAndFlush(new PgwireReadyForQuery());
         } else if (msg instanceof PgwireQuery) {
-            // xxx(okachaiev): log
-            System.out.println(msg);
+            System.out.println("Executing query: " + msg);
+
             executeQuery(ctx, (PgwireQuery) msg);
         } else if (msg instanceof PgwireTerminate) {
             ctx.close();
@@ -70,7 +72,11 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
             sendQueryResult(ctx, resultSet);
         } catch (SQLException e) {
             e.printStackTrace();
-            ctx.close();
+            // very generic "DATA EXCEPTION"
+            // it would be increadibly hard to be precise with error codes
+            // to make this happen we need to deep analysis over query/execution/parameters
+            // and map all potential scenarios to a few dozens of error codes
+            sendError(ctx, "22000", e.getMessage());
         }
     }
 
@@ -98,11 +104,17 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
             }
 
             ctx.write(new PgwireCommandComplete());
-            ctx.write(new PgwireReadyForQuery());
-            ctx.flush();
+            // xxx(okachaiev): keep a single instance instance of "new" each time
+            ctx.writeAndFlush(new PgwireReadyForQuery());
         } catch (SQLException e) {
             ctx.fireExceptionCaught(e);
         }
+    }
+
+    private void sendError(ChannelHandlerContext ctx, final String code, final String message) {
+        ctx.write(new PgwireErrorMessage(PgwireErrorMessage.Severity.ERROR, code, message));
+        // ready to serve again
+        ctx.writeAndFlush(new PgwireReadyForQuery());
     }
 
     @Override
