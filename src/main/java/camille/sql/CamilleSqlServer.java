@@ -18,6 +18,7 @@ import m2sql.MavenArtifactsDatabase;
 import pgwire.PgwireServerInitializer;
 
 public class CamilleSqlServer {
+
     final static int DEFAULT_PORT = 26727;
 
     final static String DEFAUL_FOLDER = System.getProperty("user.home") + "/.m2/repository/";
@@ -67,7 +68,8 @@ public class CamilleSqlServer {
             b.group(boss, worker)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
-                .childHandler(new PgwireServerInitializer(db));
+                // pretend to be not very old and not very new PostgreSQL server
+                .childHandler(new PgwireServerInitializer(db, "9.5.0"));
 
             System.out.println(String.format("Artifacts repository path: %s", folder));
             System.out.println(String.format("Running server on localhost:%d", port));
@@ -78,4 +80,5 @@ public class CamilleSqlServer {
             worker.shutdownGracefully();
         }
     }
+
 }

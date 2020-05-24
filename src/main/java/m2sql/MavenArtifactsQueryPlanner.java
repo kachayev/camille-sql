@@ -13,9 +13,12 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -60,6 +63,30 @@ public class MavenArtifactsQueryPlanner {
         MavenArtifactsQueryPlanner queryPlanner = new MavenArtifactsQueryPlanner(rootSchema);
         RelNode loginalPlan = queryPlanner.getLogicalPlan(sqlQuery);
         System.out.println(RelOptUtil.toString(loginalPlan));
+    }
+
+    public static void main(String[] args) {
+        final SqlParser.Config parserConfig = SqlParser.configBuilder()
+            .setLex(Lex.MYSQL_ANSI)
+            .setParserFactory(SqlBabelParserImpl.FACTORY)
+            .build();
+
+        final FrameworkConfig frameworkConfig = Frameworks.newConfigBuilder()
+                .parserConfig(parserConfig)
+                .context(Contexts.EMPTY_CONTEXT)
+                .ruleSets(RuleSets.ofList())
+                .costFactory(null)
+                .typeSystem(RelDataTypeSystem.DEFAULT)
+                .build();
+
+        final Planner planner = Frameworks.getPlanner(frameworkConfig);
+
+        try {
+            final SqlNode node = planner.parse("SELECT pg_catalog.array_to_string(d.datacl, '\"\n\"') AS \"Access privileges\" FROM pg_catalog.pg_database d ORDER BY 1");
+            System.out.println(node.toSqlString(AnsiSqlDialect.DEFAULT));
+        } catch (SqlParseException e) {
+            e.printStackTrace();
+        }
     }
 
 }

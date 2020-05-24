@@ -9,9 +9,12 @@ public class PgwireServerInitializer extends ChannelInitializer<SocketChannel> {
 
     private final MavenArtifactsDatabase db;
 
-    public PgwireServerInitializer(MavenArtifactsDatabase db) {
+    private final String pgVersion;
+
+    public PgwireServerInitializer(MavenArtifactsDatabase db, String pgVersion) {
         super();
         this.db = db;
+        this.pgVersion = pgVersion;
     }
 
     @Override
@@ -19,7 +22,7 @@ public class PgwireServerInitializer extends ChannelInitializer<SocketChannel> {
         final ChannelPipeline pipeline = ch.pipeline();
         pipeline.addLast(new PgwireStartupMessageDecoder());
         pipeline.addLast(new PgwireMessageEncoder());
-        pipeline.addLast(new PgwireServerHandler(this.db));
+        pipeline.addLast(new PgwireServerHandler(this.db, this.pgVersion));
     }
 
 }

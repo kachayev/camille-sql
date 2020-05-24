@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBufAllocator;
 
 public class PgwireCommandComplete extends PgwireServerMessage {
 
-    // xxx(okachaiev): that different for different completions
+    // xxx(okachaiev): the command  would be different for different completions
     static final String command = "SELECT";
 
     @Override

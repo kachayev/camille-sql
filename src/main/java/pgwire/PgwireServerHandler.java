@@ -15,11 +15,15 @@ import m2sql.MavenArtifactsDatabase;
 public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
     private final MavenArtifactsDatabase db;
+
     private Connection conn;
 
-    public PgwireServerHandler(MavenArtifactsDatabase db) {
+    private final String pgVersion;
+
+    public PgwireServerHandler(MavenArtifactsDatabase db, String pgVersion) {
         super();
         this.db = db;
+        this.pgVersion = pgVersion;
     }
 
     @Override
@@ -47,8 +51,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
             // xxx(okachaiev): log
             System.out.println(msg);
             ctx.write(new PgwireAuthenticationOk());
-            // pretend to be not very old and not very new PostgreSQL server
-            ctx.write(new PgwireParameterStatus("server_version", "9.5.0"));
+            ctx.write(new PgwireParameterStatus("server_version", pgVersion));
             ctx.writeAndFlush(new PgwireReadyForQuery());
         } else if (msg instanceof PgwireQuery) {
             // xxx(okachaiev): log
@@ -60,13 +63,11 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     private void executeQuery(ChannelHandlerContext ctx, PgwireQuery sql) {
-        try {
-            try (
-                final Statement statement = this.conn.createStatement();
-                final ResultSet resultSet = statement.executeQuery(sql.query)
-            ) {
-                sendQueryResult(ctx, resultSet);
-            }
+        try (
+            final Statement statement = this.conn.createStatement();
+            final ResultSet resultSet = statement.executeQuery(sql.query)
+        ) {
+            sendQueryResult(ctx, resultSet);
         } catch (SQLException e) {
             e.printStackTrace();
             ctx.close();

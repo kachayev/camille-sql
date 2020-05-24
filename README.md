@@ -61,8 +61,7 @@ Something more complicated:
 camille=>
 SELECT group_id, COUNT(*) AS n_files
 FROM artifacts
-LEFT JOIN versions
-       ON artifacts.uid=versions.uid
+LEFT JOIN versions ON artifacts.uid=versions.uid
 GROUP BY group_id
 ORDER BY n_files DESC
 LIMIT 10;
@@ -102,8 +101,8 @@ The project is mainly done out of pure curiosity:
 "Precision is the difference between a butcher and a surgeon" (tm)
 
 Implemented optimization:
-- projection elimination: if "filesize" is not queried, we don't need to waste cpu/ram to calculate it
-- push-down predicates for filtering: jump into a subfolder if prefix is known
+- prune unused fields: if "filesize" is not queried, we don't need to waste cpu/ram to calculate it
+- push-down filtering predicates: jump into a subfolder if prefix is known
 
 Work in progress:
 - optimized join of artifacts and versions: we can walk files tree once to retrieve all the information we need
@@ -118,10 +117,10 @@ It's a project made for fun. Feel free to implement whatever feature you want an
 - [ ] SSL, password authentication
 - [ ] Propage errors (like, wrong queries) to the client instead of re-openning the connection
 - [ ] Carry cancel flag around
-- [ ] Additional SQL features, like `show databases`, `show tables`
+- [ ] Additional SQL features, like `show databases`, `show tables` (need to register pg_catalog to make this happen)
 - [ ] `pgwire` protocol has way more message types that are currently implemented
 - [ ] Reject non-read queries (`insert`, `update` etc)
-- [ ] Push-down predicates for folder traversal (e.g. `group_id LIKE com.apache.%` predicate might be optimited by going directly  to `com/apache/` subfolder)
+- [x] Push-down predicates for folder traversal (e.g. `group_id LIKE com.apache.%` predicate might be optimited by going directly  to `com/apache/` subfolder)
 - [ ] Better CLI for the server (logs, args parser help etc)
 
 ## License

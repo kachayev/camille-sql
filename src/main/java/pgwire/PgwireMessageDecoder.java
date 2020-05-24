@@ -14,7 +14,10 @@ public class PgwireMessageDecoder extends LengthFieldBasedFrameDecoder {
         byte[] bytes = new byte[queryContent.readableBytes()];
         queryContent.readBytes(bytes);
         String query = new String(bytes).strip();
-        return query.substring(0, query.lastIndexOf(";"));
+        // xxx(okachaiev): replace seems to be somewhat magical...
+        // and it is. just trying to workaround lack of proper support for
+        // PostgreSQL lexer (using MySQL instead which is not compatible in some cases)
+        return query.substring(0, query.lastIndexOf(";")).replace(" E'\\n'", " '\\n'");
     }
 
     @Override
