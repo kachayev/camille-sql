@@ -35,6 +35,8 @@ public class MavenArtifactsTable implements ProjectableFilterableTable {
                 .add("uid", SqlTypeName.BIGINT)
                 .add("group_id", SqlTypeName.VARCHAR, 1023)
                 .add("artifact_id", SqlTypeName.VARCHAR, 255)
+                .add("name", SqlTypeName.VARCHAR)
+                .add("url", SqlTypeName.VARCHAR)
                 .build();
         }
     };

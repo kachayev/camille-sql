@@ -32,27 +32,28 @@ Now you have access to 2 tables: `artifacts` and `versions`. You can run any rea
 Basic queries:
 
 ```sql
-camille=> select * from artifacts limit 5;
-    uid     |       group_id        | artifact_id
-------------+-----------------------+-------------
- 3345961009 | edu.ucla.cs.compilers | jtb
- 1053708643 | stax                  | stax-api
- 2740841946 | ant                   | ant
- 925895164  | nrepl                 | nrepl
- 1376528320 | nrepl                 | bencode
-(5 rows)
+camille=> select * from artifacts limit 6;
+    uid     |         group_id         |       artifact_id        |        name         |                   url
+------------+--------------------------+--------------------------+---------------------+------------------------------------------
+ 3227713579 | alandipert               | desiderata               | desiderata          | https://github.com/alandipert/desiderata
+ 3382955103 | aopalliance              | aopalliance              | AOP alliance        | http://aopalliance.sourceforge.net
+ 1507835947 | asm                      | asm-parent               | ASM                 | http://asm.objectweb.org/
+ 226341444  | backport-util-concurrent | backport-util-concurrent | Backport of JSR 166 | http://backport-jsr166.sourceforge.net/
+ 1712481681 | biz.aQute                | bndlib                   | BND Library         | http://www.aQute.biz/Code/Bnd
+ 2280883480 | biz.aQute.bnd            | biz.aQute.bndlib         | biz.aQute.bndlib    | https://bnd.bndtools.org/
+(6 rows)
 ```
 
 ```sql
 camille=> select * from versions where filesize > 10000 limit 5;
-    uid     | version | filesize | last_modified |                   sha1
-------------+---------+----------+---------------+------------------------------------------
- 3345961009 | 1.3.2   | 337129   | 2019-12-04    | ff84d15cfeb0825935a170d7908fbfae00498050
- 1053708643 | 1.0.1   | 26514    | 2019-07-17    | 49c100caf72d658aca8e58bd74a4ba90fa2b0d70
- 2740841946 | 1.6.5   | 1034049  | 2019-07-10    | 7d18faf23df1a5c3a43613952e0e8a182664564b
- 925895164  | 0.4.4   | 42645    | 2019-04-09    | 2522f7f1b4bab169a2540406eb3eb71f7d6e3003
- 136773645  | 1.9     | 263965   | 2019-10-31    | 9ce04e34240f674bc72680f8b843b1457383161a
- (5 rows)
+    uid     | version | filesize |      last_modified      |                   sha1
+------------+---------+----------+-------------------------+------------------------------------------
+ 3345961009 | 1.3.2   | 337129   | 2019-07-04 23:36:26.464 | ff84d15cfeb0825935a170d7908fbfae00498050
+ 1053708643 | 1.0.1   | 26514    | 2019-07-04 23:23:20.322 | 49c100caf72d658aca8e58bd74a4ba90fa2b0d70
+ 2740841946 | 1.6.5   | 1034049  | 2019-07-05 05:37:10.953 | 7d18faf23df1a5c3a43613952e0e8a182664564b
+ 925895164  | 0.4.4   | 42645    | 2020-02-01 06:45:59.599 | 2522f7f1b4bab169a2540406eb3eb71f7d6e3003
+ 136773645  | 1.9     | 263965   | 2019-07-04 23:25:30.09  | 9ce04e34240f674bc72680f8b843b1457383161a
+(5 rows)
 ```
 
 Something more complicated:
