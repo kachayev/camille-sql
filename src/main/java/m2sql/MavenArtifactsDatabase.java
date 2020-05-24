@@ -66,7 +66,7 @@ public class MavenArtifactsDatabase {
 
         try (final Connection conn = db.createConnection()) {
             try (final Statement statement = conn.createStatement()) {
-                try (final ResultSet resultSet = statement.executeQuery("select group_id from artifacts where group_id = 'nrepl'")) {
+                try (final ResultSet resultSet = statement.executeQuery("select group_id from artifacts where group_id LIKE 'nrepl.%'")) {
                     printResultSet(resultSet);
                     resultSet.close();
                 }

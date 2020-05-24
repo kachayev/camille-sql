@@ -69,36 +69,56 @@ public class MavenArtifactsTable implements ProjectableFilterableTable {
         return TableType.TABLE;
     }
 
-    @Override
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters, int[] projects) {
-        String folder = null;
-        // xxx(okachaiev): that's an interesting part...
-        // finding a filter that we can actually push-down is kinda
-        // a delicate matter. this code might overwrite folder and
-        // make the result simply wrong. E.g. when selecting
-        // ... group_id = 'maven' and group_id = 'ant'...
+    private boolean isColumnLiteral(final List<RexNode> operands) {
+        final RexNode columnInput = operands.get(0);
+        return columnInput instanceof RexInputRef
+            && ((RexInputRef) columnInput).getName().equals("$1");
+    }
+
+    // trying to find filters in for of "where group_id = X"
+    // note, that compiler won't push filter if more
+    // compilated logic should be applied between leafs,
+    // like "where group_id = X or group_id = Y"
+    // or, even worse, "where group_id = X and group_id = Y"
+    //
+    // a use case that's harder to capture (but still possible)
+    // "where group_id LIKE 'nrepl.%'"
+    private String pushDownFolder(List<RexNode> filters) {
         for (final RexNode filter: filters) {
+            final RexCall call = (RexCall) filter;
+            final List<RexNode> operands = call.getOperands();
+            if (!isColumnLiteral(operands)) {
+                // hardly we can do anything here
+                continue;
+            }
             if (filter.isA(SqlKind.EQUALS)) {
-                final RexCall call = (RexCall) filter;
-                final List<RexNode> operands = call.getOperands();
-                final RexNode columnInput = operands.get(0);
-                if (columnInput instanceof RexInputRef
-                        && ((RexInputRef) columnInput).getName().equals("$1")) {
-                    final RexNode columnLiteral = operands.get(1);
-                    if (columnLiteral instanceof RexLiteral) {
-                        NlsString value = (NlsString) ((RexLiteral) columnLiteral).getValue();
-                        final String stringValue = value.getValue();
-                        if (folder != null && !folder.equals(stringValue)) {
-                            // this is exactly the situation of "group_id = 'maven' and group_id = 'ant'"
-                            // we can just return an empty list here
-                            return Linq4j.emptyEnumerable();
-                        } else {
-                            folder = stringValue;
+                final RexNode columnLiteralValue = operands.get(1);
+                if (columnLiteralValue instanceof RexLiteral) {
+                    final NlsString value = (NlsString) ((RexLiteral) columnLiteralValue).getValue();
+                    return value.getValue();
+                }
+            } else if (filter.isA(SqlKind.LIKE)) {
+                final RexNode columnLiteralValue = operands.get(1);
+                if (columnLiteralValue instanceof RexLiteral) {
+                    final NlsString value = (NlsString) ((RexLiteral) columnLiteralValue).getValue();
+                    final String stringValue = value.getValue();
+                    if (stringValue.endsWith(".%")) {
+                        final String likePredicate = stringValue.substring(0, stringValue.length()-2);
+                        // this means that we're looking for something like "nrepl.%"
+                        // and not "%.apache.%"
+                        if (!likePredicate.contains("%")) {
+                            return likePredicate;
                         }
                     }
                 }
             }
         }
+        return null;
+    }
+
+    @Override
+    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters, int[] projects) {
+        final String folder = pushDownFolder(filters);
 
         try {
             return Linq4j
