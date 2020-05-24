@@ -66,25 +66,30 @@ public class MavenArtifactsDatabase {
 
         try (final Connection conn = db.createConnection()) {
             try (final Statement statement = conn.createStatement()) {
-                try (final ResultSet resultSet = statement.executeQuery("select group_id from artifacts where group_id LIKE 'nrepl.%'")) {
+                // try (final ResultSet resultSet = statement.executeQuery("select group_id from artifacts where group_id LIKE 'nrepl.%'")) {
+                //     printResultSet(resultSet);
+                //     resultSet.close();
+                // }
+
+                // try (final ResultSet resultSet = statement.executeQuery("select uid, filesize from versions")) {
+                //     printResultSet(resultSet);
+                //     resultSet.close();
+                // }
+
+                try (final ResultSet resultSet = statement.executeQuery("select * from versions where filesize > 10000 limit 5")) {
                     printResultSet(resultSet);
                     resultSet.close();
                 }
 
-                try (final ResultSet resultSet = statement.executeQuery("select uid, filesize from versions")) {
-                    printResultSet(resultSet);
-                    resultSet.close();
-                }
+                // try (final ResultSet resultSet = statement.executeQuery("select group_id, count(*) as n_files from artifacts left join versions on artifacts.uid=versions.uid group by group_id order by n_files desc")) {
+                //     printResultSet(resultSet);
+                //     resultSet.close();
+                // }
 
-                try (final ResultSet resultSet = statement.executeQuery("select group_id, count(*) as n_files from artifacts left join versions on artifacts.uid=versions.uid group by group_id order by n_files desc")) {
-                    printResultSet(resultSet);
-                    resultSet.close();
-                }
-
-                try (final ResultSet resultSet = statement.executeQuery("select group_id, sum(filesize) as total_size from artifacts left join versions on artifacts.uid=versions.uid group by group_id order by total_size desc")) {
-                    printResultSet(resultSet);
-                    resultSet.close();
-                }
+                // try (final ResultSet resultSet = statement.executeQuery("select group_id, sum(filesize) as total_size from artifacts left join versions on artifacts.uid=versions.uid group by group_id order by total_size desc")) {
+                //     printResultSet(resultSet);
+                //     resultSet.close();
+                // }
             }
         }
     }

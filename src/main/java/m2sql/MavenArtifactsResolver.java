@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.zip.CRC32;
 
@@ -43,7 +45,10 @@ public class MavenArtifactsResolver {
             return String.format("%s::%s", groupId, artifactId);
         }
 
-        public Object[] toRow(final int[] projects) {
+        public Object[] toRow(int[] projects) {
+            if (projects == null) {
+                projects = IntStream.range(0, 3).toArray();
+            }
             final List<Object> row = new ArrayList<>();
             for (final int fieldIndex: projects) {
                 switch (fieldIndex) {
@@ -71,7 +76,10 @@ public class MavenArtifactsResolver {
         private final long lastModified;
         private final String sha1;
 
-        public Object[] toRow(final int[] projects) {
+        public Object[] toRow(int[] projects) {
+            if (projects == null) {
+                projects = IntStream.range(0, 5).toArray();
+            }
             final List<Object> row = new ArrayList<>();
             for (final int fieldIndex: projects) {
                 switch (fieldIndex) {
@@ -118,8 +126,12 @@ public class MavenArtifactsResolver {
     // to avoid "switch" statements and magical .contains calls
     private ArtifactVersion pomPathToArtifactVersion(final int[] projects, final Path filePath) {
         final Set<Integer> fieldIndex = new HashSet<>();
-        for (final int project: projects) {
-            fieldIndex.add(project);
+        if (projects == null) {
+            fieldIndex.addAll(IntStream.range(0, 5).boxed().collect(Collectors.toSet()));
+        } else {
+            for (final int project: projects) {
+                fieldIndex.add(project);
+            }
         }
 
         final Artifact artifact = pomPathToArtifact(filePath);
