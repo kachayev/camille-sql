@@ -14,6 +14,8 @@ import m2sql.MavenArtifactsDatabase;
 
 public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
+    private static final String ERROR_CODE_DATA_EXCEPTION = "22000";
+
     private static final PgwireCommandComplete SELECT_COMMAND_COMPLETE_MESSAGE =
         new PgwireCommandComplete("SELECT");
 
@@ -81,7 +83,7 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
             // it would be increadibly hard to be precise with error codes
             // to make this happen we need to deep analysis over query/execution/parameters
             // and map all potential scenarios to a few dozens of error codes
-            sendError(ctx, "22000", e.getMessage());
+            sendError(ctx, ERROR_CODE_DATA_EXCEPTION, e.getMessage());
         }
     }
 
