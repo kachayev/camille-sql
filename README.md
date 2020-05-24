@@ -115,7 +115,7 @@ This is the project made for fun. Feel free to implement whatever feature you wa
 
 - [ ] Network encoding logic baked into DTO object is such a bad idea... Instead of `toByteBuf` method for each message type, the logic should be implemented in a single encoder with dynamic type-based dispatch
 - [x] Propage errors (like, wrong queries) to the client instead of re-openning the connection
-- [ ] Additional SQL features, like `show databases`, `show tables` (need to register pg_catalog to make this happen)
+- [ ] Additional PostgreSQL client features, like `\l`, `show databases`, `show tables` (need to register `pg_catalog` to make this happen)
 - [ ] `pgwire` protocol has way more message types that are currently implemented
 - [ ] Reject non-read queries (`insert`, `update` etc)
 - [x] Push-down predicates for folder traversal (e.g. `group_id LIKE com.apache.%` predicate might be optimited by going directly  to `com/apache/` subfolder)
