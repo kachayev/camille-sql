@@ -30,7 +30,7 @@ public class MavenArtifactVersionsTable implements ProjectableFilterableTable {
                 .add("uid", SqlTypeName.BIGINT)
                 .add("version", SqlTypeName.VARCHAR, 255)
                 .add("filesize", SqlTypeName.BIGINT)
-                .add("last_modified", SqlTypeName.DATE)
+                .add("last_modified", SqlTypeName.TIMESTAMP)
                 .add("sha1", SqlTypeName.VARCHAR, 40)
                 .build();
         }
