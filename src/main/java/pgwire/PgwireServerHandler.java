@@ -4,9 +4,11 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.calcite.avatica.AvaticaPreparedStatement;
+import org.apache.calcite.avatica.Meta;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -15,6 +17,10 @@ import m2sql.MavenArtifactsDatabase;
 public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final String ERROR_CODE_DATA_EXCEPTION = "22000";
+
+    private static final String ERROR_CODE_INVALID_SQL_STATEMENT = "26000";
+
+    private static final String ERROR_MESSAGE_NON_SELECT_STATEMENT = "Only SELECT statemenet are supported";
 
     private static final PgwireCommandComplete SELECT_COMMAND_COMPLETE_MESSAGE =
         new PgwireCommandComplete("SELECT");
@@ -72,11 +78,16 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     private void executeQuery(ChannelHandlerContext ctx, PgwireQuery sql) {
-        try (
-            final Statement statement = this.conn.createStatement();
-            final ResultSet resultSet = statement.executeQuery(sql.query)
-        ) {
-            sendQueryResult(ctx, resultSet);
+        try (final AvaticaPreparedStatement statement =
+                (AvaticaPreparedStatement) this.conn.prepareStatement(sql.query)) {
+            if (statement.getStatementType().equals(Meta.StatementType.SELECT)) {
+                try (final ResultSet resultSet = statement.executeQuery()) {
+                    sendQueryResult(ctx, resultSet);
+                }
+            } else {
+                System.out.println("Abort execution: non SELECT statement");
+                sendError(ctx, ERROR_CODE_INVALID_SQL_STATEMENT, ERROR_MESSAGE_NON_SELECT_STATEMENT);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             // very generic "DATA EXCEPTION"
@@ -90,32 +101,27 @@ public class PgwireServerHandler extends SimpleChannelInboundHandler<Object> {
     // send row descriptor
     // send row data
     // send command complete
-    private void sendQueryResult(ChannelHandlerContext ctx, ResultSet resultSet) {
-        try {
-            final ResultSetMetaData metadata = resultSet.getMetaData();
-            final int numColumns = metadata.getColumnCount();
+    private void sendQueryResult(ChannelHandlerContext ctx, ResultSet resultSet) throws SQLException {
+        final ResultSetMetaData metadata = resultSet.getMetaData();
+        final int numColumns = metadata.getColumnCount();
 
-            final List<PgwireField> fields = new ArrayList<>();
-            for (int i=1; i <= numColumns; i++) {
-                // xxx(okachaiev): in practice columns have different types
-                fields.add(new PgwireVarcharField(metadata.getColumnName(i)));
-            }
-            ctx.write(new PgwireRowDescription(fields));
-
-            while(resultSet.next()) {
-                final Object[] row = new Object[numColumns];
-                for (int i = 1; i <= numColumns; i++) {
-                    row[i-1] = resultSet.getObject(i);
-                }
-                ctx.write(new PgwireRowData(row));
-            }
-
-            ctx.write(SELECT_COMMAND_COMPLETE_MESSAGE);
-            // xxx(okachaiev): keep a single instance instance of "new" each time
-            ctx.writeAndFlush(READY_FOR_QUERY_MESSAGE);
-        } catch (SQLException e) {
-            ctx.fireExceptionCaught(e);
+        final List<PgwireField> fields = new ArrayList<>();
+        for (int i=1; i <= numColumns; i++) {
+            // xxx(okachaiev): in practice columns have different types
+            fields.add(new PgwireVarcharField(metadata.getColumnName(i)));
         }
+        ctx.write(new PgwireRowDescription(fields));
+
+        while(resultSet.next()) {
+            final Object[] row = new Object[numColumns];
+            for (int i = 1; i <= numColumns; i++) {
+                row[i-1] = resultSet.getObject(i);
+            }
+            ctx.write(new PgwireRowData(row));
+        }
+
+        ctx.write(SELECT_COMMAND_COMPLETE_MESSAGE);
+        ctx.writeAndFlush(READY_FOR_QUERY_MESSAGE);
     }
 
     private void sendError(ChannelHandlerContext ctx, final String code, final String message) {

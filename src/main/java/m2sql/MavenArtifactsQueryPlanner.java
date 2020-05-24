@@ -57,14 +57,6 @@ public class MavenArtifactsQueryPlanner {
         return planner.rel(validateSqlNode).project();
     }
 
-    public static void printExplain(CalciteConnection conn, String sqlQuery)
-            throws ValidationException, RelConversionException {
-        final SchemaPlus rootSchema = conn.getRootSchema();
-        MavenArtifactsQueryPlanner queryPlanner = new MavenArtifactsQueryPlanner(rootSchema);
-        RelNode loginalPlan = queryPlanner.getLogicalPlan(sqlQuery);
-        System.out.println(RelOptUtil.toString(loginalPlan));
-    }
-
     public static void main(String[] args) {
         final SqlParser.Config parserConfig = SqlParser.configBuilder()
             .setLex(Lex.MYSQL_ANSI)
