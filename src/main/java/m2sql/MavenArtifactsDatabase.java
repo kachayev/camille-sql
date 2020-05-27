@@ -57,8 +57,7 @@ public class MavenArtifactsDatabase {
         }        
     } 
 
-    public static void main(String[] args)
-            throws ValidationException, RelConversionException, ClassNotFoundException, SQLException {
+    public static void main(String[] args) throws ClassNotFoundException, SQLException {
 
         final String userFolder = System.getProperty("user.home");
         final String m2Folder = Paths.get(userFolder, ".m2/repository/").toString();
