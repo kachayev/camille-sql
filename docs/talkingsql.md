@@ -199,9 +199,9 @@ okachaiev-> HAVING n_files > 20;
 
 * originally PostgreSQL
 
-* home-grown low-level binary serialization format 
+* own low-level binary serialization format 
 
-* home-grown barely-documented control flow
+* own somewhat documented control flow
 
 * why?
 
@@ -214,9 +214,9 @@ okachaiev-> HAVING n_files > 20;
 
 ---
 
-# Protocol: Sequence Diagram
+# Sequence Diagram (simplified)
 
-TBD
+![right fit](file:///Users/kachayev/Desktop/pgwireseq.png)
 
 ---
 
