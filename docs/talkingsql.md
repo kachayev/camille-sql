@@ -123,7 +123,7 @@ okachaiev=> select * from artifacts limit 6;
  2280883480 | biz.aQute.bnd            | biz.aQute.bndlib         | biz.aQute.bndlib    | https://bnd.bndtools.org/
 (6 rows)
 
-okachaiev => select * from versions where filesize > 10000 limit 5;
+okachaiev=> select * from versions where filesize > 10000 limit 5;
     uid     | version | filesize |      last_modified      |                   sha1
 ------------+---------+----------+-------------------------+------------------------------------------
  3345961009 | 1.3.2   | 337129   | 2019-07-04 23:36:26.464 | ff84d15cfeb0825935a170d7908fbfae00498050
@@ -278,7 +278,7 @@ public ByteBuf toByteBuf(ByteBufAllocator allocator) {
 
 * parse
 
-* plan
+* plan (compile)
 
 * optimize
 
@@ -328,7 +328,20 @@ public ByteBuf toByteBuf(ByteBufAllocator allocator) {
 
 ---
 
-TBD: result of query parsing
+# Life of a Query: Parser
+
+* Babel-based parser
+
+* Default Calcite dialect (uppercase, "`" for quoting)
+
+```sql
+SELECT `group_id`, COUNT(*) AS `n_files`
+FROM `versions`
+GROUP BY `group_id`
+ORDER BY `n_files` DESC
+```
+
+![right fit](file:///Users/kachayev/Desktop/sqlparser.png)
 
 ---
 
@@ -382,7 +395,69 @@ protected final RelProtoDataType protoRowType = new RelProtoDataType() {
 
 ---
 
-TBD: result of query compilation
+# Life of a Query: Logical Plan
+
+```sql
+select group_id, name from artifacts
+```
+
+↓
+
+```shell
+Root {
+  kind: SELECT,
+  rel: rel#5:LogicalProject#5,
+  rowType: RecordType(VARCHAR(1023) group_id, VARCHAR name),
+  fields: [<0, group_id>, <1, name>],
+}
+```
+
+↓
+
+```shell
+LogicalProject(group_id=[$1], name=[$3])
+  LogicalTableScan(table=[[artifacts]])
+```
+
+---
+
+# Life of a Query: Logical Plan
+
+```sql
+select group_id, name
+from artifacts
+where group_id = 'nrepl'
+order by artifact_id
+limit 20
+```
+
+```shell
+LogicalProject(group_id=[$0], name=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC], fetch=[20])
+    LogicalProject(group_id=[$1], name=[$3], artifact_id=[$2])
+      LogicalFilter(condition=[=($1, 'nrepl')])
+        LogicalTableScan(table=[[artifacts]])
+```
+
+---
+# Life of a Query: Logical Plan
+
+```sql
+select group_id, count(*) as n_files
+from artifacts
+left join versions on artifacts.uid=versions.uid
+group by group_id
+order by n_files desc
+```
+
+```shell
+LogicalSort(sort0=[$1], dir0=[DESC])
+  LogicalAggregate(group=[{0}], n_files=[COUNT()])
+    LogicalProject(group_id=[$1])
+      LogicalJoin(condition=[=($0, $5)], joinType=[left])
+        LogicalTableScan(table=[[artifacts]])
+        LogicalTableScan(table=[[versions]])
+```
 
 ---
 
@@ -406,9 +481,11 @@ public Enumerable<Object[]> scan(DataContext root) {
 
 * analog of C# `LINQ` (Language Integrated Queries)
 
-* `df.Select(*).Where(_.version > 1).Take(5)`
+* `Items.Select(*).Where(Item.Version > 1).Take(5)`
 
-* years before Spark popularized the idea
+* a few years later, Spark popularized the idea for Big Data
+
+* `Linq4j` does heavy-lifting (folding relational operators)
 
 ---
 
@@ -531,13 +608,15 @@ where LOWER(group_id) + CAST("spark" AS VARCHAR) = 'com.apache.spark';
 
 # Optimization: `toRel`
 
-* table as a **relational expression**, e.g.
+* table as a **relational expression**
 
-* if we have files listing as `Scan`
+	* opt-out from being a `TableScan`
 
-* both `artifacts` and `version` tables are `Project` + `Filter` applied to it
+* e.g. `artifacts` might be defined as DISTINCT over `versions`
 
-* `JOIN` between them might be folded
+* or, both `artifacts` and `version` tables are `Project` + `Filter` applied to virtual `files` table
+
+* in both cases, `JOIN` between them might be folded
 
 ---
 
