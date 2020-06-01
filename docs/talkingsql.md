@@ -4,6 +4,7 @@
 <br/>
 
 ### Oleksii Kachaiev, @kachayev
+### Staff Engineer @ Riot Games, League of Legends
 
 ---
 
@@ -143,8 +144,7 @@ okachaiev=> SELECT group_id, COUNT(*) AS n_files
 okachaiev-> FROM artifacts
 okachaiev-> LEFT JOIN versions ON artifacts.uid=versions.uid
 okachaiev-> GROUP BY group_id
-okachaiev-> ORDER BY n_files DESC
-okachaiev-> HAVING n_files > 20;
+okachaiev-> ORDER BY n_files DESC;
           group_id          | n_files
 ----------------------------+---------
  org.apache.hadoop          | 84
@@ -431,6 +431,8 @@ order by artifact_id
 limit 20
 ```
 
+↓
+
 ```shell
 LogicalProject(group_id=[$0], name=[$1])
   LogicalSort(sort0=[$2], dir0=[ASC], fetch=[20])
@@ -449,6 +451,8 @@ left join versions on artifacts.uid=versions.uid
 group by group_id
 order by n_files desc
 ```
+
+↓
 
 ```shell
 LogicalSort(sort0=[$1], dir0=[DESC])
@@ -648,5 +652,5 @@ where LOWER(group_id) + CAST("spark" AS VARCHAR) = 'com.apache.spark';
 <br/>
 
 
-### Oleksii Kachaiev, @kachayev
+### Oleksii Kachaiev
 ### [camille-sql](https://github.com/kachayev/camille-sql)

@@ -2,6 +2,8 @@
 
 Run SQL over your Maven artifacts.
 
+[Slides](https://speakerdeck.com/kachayev/talking-sql-to-strangers) from the talk "Talking SQL to Strangers".
+
 ## What?
 
 `camille-sql` allows you to explore Maven artifacts you have on your local hard drive.
@@ -97,6 +99,8 @@ The project is mainly done out of pure curiosity:
 - "Database" that actually executes query is implemented in `m2sql` package. It exposes JDBC connection, so the server uses standard `java.sql` interface when talking to it (see documentation for [Apache Avatica](https://calcite.apache.org/avatica/) library).
 - [Apache Calcite](https://calcite.apache.org/) is used for query parsing, query planning, query optimizaiton. High-level API is used to declare catalog structure, tables, schemas, relations and scanning logic.
 
+More details in the [deck](https://speakerdeck.com/kachayev/talking-sql-to-strangers).
+
 ## Optimizations
 
 "Precision is the difference between a butcher and a surgeon" (tm)
@@ -123,6 +127,7 @@ This is the project made for fun. Feel free to implement whatever feature you wa
 - [x] Better CLI for the server (logs, args parser help etc)
 - [ ] SSL, password authentication
 - [ ] Carry cancel flag around
+- [ ] `DELETE` versions
 
 ## License
 
